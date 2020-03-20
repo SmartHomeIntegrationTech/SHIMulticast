@@ -7,14 +7,31 @@
 #include <AsyncUDP.h>
 
 #include <map>
+#include <string>
 
 #include "SHICommunicator.h"
 
 namespace SHI {
 
+class MulticastHandlerConfig : public Configuration {
+ public:
+  MulticastHandlerConfig() {}
+  explicit MulticastHandlerConfig(const JsonObject &obj);
+  void fillData(JsonObject &doc) const override;
+  int CONNECT_TIMEOUT = 500;
+  int DATA_TIMEOUT = 1000;
+  int PORT = 2323;
+  std::string multicastAddr = "239.1.23.42";
+  std::string firmwareURL = "http://192.168.188.250/esp/firmware/";
+
+ protected:
+  int getExpectedCapacity() const override;
+};
+
 class MulticastHandler : public Communicator {
  public:
-  MulticastHandler() : Communicator("Multicast") {
+  explicit MulticastHandler(MulticastHandlerConfig &config)
+      : Communicator("Multicast"), config(config) {
     registeredHandlers.insert(
         {"UPDATE", [this](AsyncUDPPacket &packet) { updateHandler(&packet); }});
     registeredHandlers.insert(
@@ -32,6 +49,11 @@ class MulticastHandler : public Communicator {
   void newReading(const MeasurementBundle &reading) override {}
   void newStatus(const Measurement &status, SHIObject *src) override {}
   void addUDPPacketHandler(String trigger, AuPacketHandlerFunction handler);
+  const Configuration *getConfig() const override { return &config; }
+  bool reconfigure(SHI::Configuration *newConfig) {
+    config = castConfig<MulticastHandlerConfig>(newConfig);
+    return true;
+  }
 
  private:
   void updateHandler(AsyncUDPPacket *packet);
@@ -47,6 +69,7 @@ class MulticastHandler : public Communicator {
   void startUpdate();
   bool doUpdate = false;
   AsyncUDP udpMulticast;
+  MulticastHandlerConfig config;
   std::map<String, AuPacketHandlerFunction> registeredHandlers;
 };
 

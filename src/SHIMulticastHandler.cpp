@@ -17,8 +17,6 @@
 
 namespace {
 
-const int CONNECT_TIMEOUT = 500;
-const int DATA_TIMEOUT = 1000;
 PROGMEM const String RESET_SOURCE[] = {
     "NO_MEAN",          "POWERON_RESET",    "SW_RESET",
     "OWDT_RESET",       "DEEPSLEEP_RESET",  "SDIO_RESET",
@@ -52,16 +50,15 @@ class StatsVisitor : public SHI::Visitor {
 }  // namespace
 
 void SHI::MulticastHandler::updateProgress(size_t a, size_t b) {
-  udpMulticast.printf("OK UPDATE:%s %u/%u\n", C_NODENAME, a, b);
+  udpMulticast.printf("OK UPDATE:%s %u/%u", C_NODENAME, a, b);
   SHI::hw->feedWatchdog();
 }
 
 bool SHI::MulticastHandler::isUpdateAvailable() {
   HTTPClient http;
-  http.begin("http://192.168.188.250/esp/firmware/" + String(C_NODENAME) +
-             ".version");
-  http.setConnectTimeout(CONNECT_TIMEOUT);
-  http.setTimeout(DATA_TIMEOUT);
+  http.begin(config.firmwareURL.c_str() + String(C_NODENAME) + ".version");
+  http.setConnectTimeout(config.CONNECT_TIMEOUT);
+  http.setTimeout(config.DATA_TIMEOUT);
   int httpCode = http.GET();
   if (httpCode >= 200 && httpCode < 300) {
     String remoteVersion = http.getString();
@@ -73,10 +70,9 @@ bool SHI::MulticastHandler::isUpdateAvailable() {
 
 void SHI::MulticastHandler::startUpdate() {
   HTTPClient http;
-  http.begin("http://192.168.188.250/esp/firmware/" + String(C_NODENAME) +
-             ".bin");
-  http.setConnectTimeout(CONNECT_TIMEOUT);
-  http.setTimeout(DATA_TIMEOUT);
+  http.begin(config.firmwareURL.c_str() + String(C_NODENAME) + ".bin");
+  http.setConnectTimeout(config.CONNECT_TIMEOUT);
+  http.setTimeout(config.DATA_TIMEOUT);
   int httpCode = http.GET();
   if (httpCode >= 200 && httpCode < 300) {
     sendMulticast(String("OK UPDATE:") + C_NODENAME + " Starting");
@@ -129,7 +125,9 @@ void SHI::MulticastHandler::loopCommunication() {
 }
 
 void SHI::MulticastHandler::setupCommunication() {
-  if (udpMulticast.listenMulticast(IPAddress(239, 1, 23, 42), 2323)) {
+  IPAddress addr;
+  addr.fromString(config.multicastAddr.c_str());
+  if (udpMulticast.listenMulticast(addr, config.PORT)) {
     auto handleUDP = std::bind(&SHI::MulticastHandler::handleUDPPacket, this,
                                std::placeholders::_1);
     udpMulticast.onPacket(handleUDP);
@@ -147,7 +145,9 @@ void SHI::MulticastHandler::resetHandler(AsyncUDPPacket *packet) {
   SHI_LOGINFO("RESET called");
   packet->printf("OK RESET:%s", C_NODENAME);
   packet->flush();
-  SHI::hw->resetWithReason("UDP RESET request", true);
+  SHI::hw->resetWithReason(std::string("UDP RESET request from: ") +
+                               packet->remoteIP().toString().c_str(),
+                           true);
 }
 
 void SHI::MulticastHandler::reconfHandler(AsyncUDPPacket *packet) {

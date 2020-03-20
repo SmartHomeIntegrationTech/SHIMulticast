@@ -1,6 +1,6 @@
 {
-  "name": "SmartHomeIntegrationESP32",
-  "description": "An implementation of SHIT for ESP32",
+  "name": "SHIMulticast",
+  "description": "An implementation of SHIMulticast for SHIT",
   "keywords": [
     "SmartHome"
   ],
