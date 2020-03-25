@@ -6,7 +6,7 @@
 
 // WARNING, this is an automatically generated file!
 // Don't change anything in here.
-// Last update 2020-03-15
+// Last update 2020-03-25
 
 # include <iostream>
 # include <string>
@@ -15,8 +15,12 @@
 # include "SHIMulticastHandler.h"
 // Configuration implementation for class SHI::MulticastHandlerConfig
 
+namespace {
+    
+}  // namespace
+
 SHI::MulticastHandlerConfig::MulticastHandlerConfig(const JsonObject &obj):
-       CONNECT_TIMEOUT(obj["CONNECT_TIMEOUT"] | 500),
+      CONNECT_TIMEOUT(obj["CONNECT_TIMEOUT"] | 500),
       DATA_TIMEOUT(obj["DATA_TIMEOUT"] | 1000),
       PORT(obj["PORT"] | 2323),
       multicastAddr(obj["multicastAddr"] | "239.1.23.42"),
